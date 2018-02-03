@@ -22,8 +22,9 @@ public:
   ThreadPool(ThreadPool &&) = delete;
   ThreadPool & operator=(const ThreadPool &) = delete;
   ThreadPool & operator=(ThreadPool &&) = delete;
+  ~ThreadPool(){ shutdown(); }
 
-  // Inits thread pool
+  // Create threads in the pool and let them run
   void start() {
     for (auto &t : worker_threads) {
       t = std::thread([this](){
@@ -50,6 +51,7 @@ public:
   void shutdown() {
     {
       std::unique_lock<std::mutex> lock(status_and_queue_mutex);
+      if (status != running) return;
       status = stopping;
     }
     status_and_queue_cv.notify_all();

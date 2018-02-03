@@ -1,14 +1,42 @@
 # simple_thread_pool
 A bare metal thread pool with C++11. It should work on both Linux and Windows.
 
-# Usage example (Windows)
+# build example
+```c
+// Windows, VS 2015 installed
 git clone https://github.com/gongfan99/simple_thread_pool.git
 cd test
 build
 test
+```
 
-Note: either submit() or submitFuture() can be used. I guess submit() is faster because of less wrapping but it only supports submitting void (*)(...) form of function. submitFuture() supports any form of function but it could be slower because of more wrapping. You can come up with a even faster version of submit() if the function to be submitted has a fixed form for example int f(int), then std::bind is not needed in the code. 
+# usage
+```c
+// Create pool with 3 threads
+ThreadPool pool(3);
+
+// Create threads in the pool and let them run
+pool.start();
+
+// Submit work
+// lambda function is used here as example. Any callable type can be used.
+pool.submit( [](float data) { process(data); }, 1.234 );
+
+// Submit work
+// it ignores the return value
+pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
+
+// Submit work that returns future
+auto fut = pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
+float result = fut.get();
+
+// Shutdown the pool, releasing all threads
+pool.shutdown();
+```
+
+More usage cases can be found in test/test.cc
+Either submit() or submitFuture() can be used. submit() may be faster because of less wrapping but it only supports funtion that returns void. submitFuture() supports any form of function but may be slower.
+You can come up with a even faster version of submit() if the function to be submitted has a fixed known form for example int f(int), then std::bind is not needed in the submit() implementation which can make it faster. 
 
 # Reference
-It is modified based on
-https://github.com/mtrebi/thread-pool
+It is modified based on [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool)
