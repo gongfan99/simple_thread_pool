@@ -38,7 +38,7 @@ More usage cases can be found in test/test.cc
 
 Either submit() or submitFuture() can be used. submit() may be faster because of less wrapping but it only supports funtion that returns void. submitFuture() supports any form of function but may be slower.
 
-You can come up with a even faster version of submit() if the function to be submitted has a fixed known form for example int f(int), then std::bind is not needed in the submit() implementation which can make it faster. 
+You can come up with an even faster version if the function to be submitted has a fixed known form for example int f(int), then std::bind is not needed in the submit() implementation which can make it faster. 
 
 # Reference
 It is modified based on [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool)
