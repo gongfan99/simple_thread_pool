@@ -48,19 +48,35 @@ int main() {
   // Submit (partial) multiplication table
   for (int i = 1; i < 3; ++i) {
     for (int j = 1; j < 4; ++j) {
-      auto f = pool.submit(multiply, i, j);
+      pool.submit(multiply, i, j);
       std::cout << i << " * " << j << " submitted" << std::endl;
-      f.wait();
-      std::cout << i << " * " << j << " = " << std::endl;
     }
   }
 
   // Submit function with output parameter passed by ref
-/*   int output_ref;
+  int output_ref;
   pool.submit(multiply_output, std::ref(output_ref), 5, 6);
-  std::cout << 5 << " * " << 6 << " submitted" << std::endl; */
-  
-  std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+  std::cout << 5 << " * " << 6 << " submitted" << std::endl;
+
+  // Submit (partial) multiplication table
+  for (int i = 1; i < 3; ++i) {
+    for (int j = 1; j < 4; ++j) {
+      pool.submitFuture(multiply, i, j);
+      std::cout << i << " * " << j << " submitted" << std::endl;
+    }
+  }
+
+  // Submit function with output parameter passed by ref
+  auto ft = pool.submitFuture(multiply_return, 5, 6);
+  std::cout << 5 << " * " << 6 << " submitted" << std::endl;
+  std::cout << 5 << " * " << 6 << " = " << ft.get() << std::endl;
+
+  auto ft2 = pool.submitFuture(multiply_output, std::ref(output_ref), 7, 8);
+  std::cout << 7 << " * " << 8 << " submitted" << std::endl;
+  ft2.wait();
+  std::cout << 7 << " * " << 8 << " = " << output_ref << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   std::cout << "pool shutting down" << std::endl;
   pool.shutdown();
   std::cout << "pool shut down" << std::endl;

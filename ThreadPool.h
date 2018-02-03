@@ -60,38 +60,34 @@ public:
     }
   }
 
-  // Submit a function to be executed asynchronously by the pool
+  // Submit a void (*)(...) function to be executed asynchronously by the pool
   // need to use std::ref to pass in reference
-/*   template<typename F, typename...Args>
+  template<typename F, typename...Args>
   void submit(F&& f, Args&&... args) {
     std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-    {
-      std::unique_lock<std::mutex> lock(status_and_queue_mutex);
-      queue.push(func);
-    }
-    status_and_queue_cv.notify_one();
-  } */
-  
-  template<typename F, typename...Args>
-  auto submit(F&& f, Args&&... args) -> std::future<decltype(f(args...))> {
-/*     std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-    std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
-    std::packaged_task<decltype(f(args...))()> task(std::bind(std::forward<F>(f), std::forward<Args>(args)...)); */
-    /* std::promise<decltype(f(args...))> p; */
-    std::promise<decltype(f(args...))> p;
-    /* std::future<decltype(f(args...))> ft = p.get_future(); */
-    std::future<decltype(f(args...))> ft = p.get_future();
-/*     std::function<void()> func = std::bind([](F&& f, Args&&... args, std::promise<decltype(f(args...))>& pp){
-      pp.set_value(f(args...));
-    }, std::forward<F>(f), std::forward<Args>(args)..., std::move(p)); */
-/*     std::function<void()> func = std::bind([](std::promise<decltype(f(args...))> pp){
-    }, std::move(p)); */
-    std::function<void()> func = [](){};
     {
       std::unique_lock<std::mutex> lock(status_and_queue_mutex);
       queue.push(std::move(func));
     }
     status_and_queue_cv.notify_one();
-    return ft;
+  }
+  
+  // Submit any function
+  // This is a more general form than "Submit" but may be slower???
+  template<typename F, typename...Args>
+  auto submitFuture(F&& f, Args&&... args) -> std::future<decltype(f(args...))> {
+    auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>>(
+      std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+
+    std::function<void()> func = [task_ptr]() { (*task_ptr)(); };
+
+    {
+      std::unique_lock<std::mutex> lock(status_and_queue_mutex);
+      queue.push(std::move(func));
+    }
+    status_and_queue_cv.notify_one();
+
+    return task_ptr->get_future(); // calling thread will not wait at future destroyer
   }
 };
