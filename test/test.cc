@@ -12,6 +12,8 @@ auto rnd = std::bind(dist, mt);
 
 void simulate_hard_computation() {
   std::this_thread::sleep_for(std::chrono::milliseconds(500 + rnd()));
+/*   double y;
+  for (int i = 1; i < 99999999; ++i) { y = y * 0.99999; } */
 }
 
 // Simple function that adds multiplies two numbers and prints the result
@@ -67,14 +69,14 @@ int main() {
   }
 
   // Submit function with output parameter passed by ref
-  auto ft = pool.submitFuture(multiply_return, 5, 6);
-  std::cout << 5 << " * " << 6 << " submitted" << std::endl;
-  std::cout << 5 << " * " << 6 << " = " << ft.get() << std::endl;
+  auto fut = pool.submitFuture(multiply_return, 5, 6);
+  std::cout << 5 << " * " << 6 << " submitted; wait for future fut ready" << std::endl;
+  std::cout << 5 << " * " << 6 << " = " << fut.get() << "; future fut ready" << std::endl;
 
-  auto ft2 = pool.submitFuture(multiply_output, std::ref(output_ref), 7, 8);
-  std::cout << 7 << " * " << 8 << " submitted" << std::endl;
-  ft2.wait();
-  std::cout << 7 << " * " << 8 << " = " << output_ref << std::endl;
+  auto fut2 = pool.submitFuture(multiply_output, std::ref(output_ref), 7, 8);
+  std::cout << 7 << " * " << 8 << " submitted; wait for future fut2 ready" << std::endl;
+  fut2.wait();
+  std::cout << 7 << " * " << 8 << " = " << output_ref << "; future fut2 ready" << std::endl;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   std::cout << "pool shutting down" << std::endl;

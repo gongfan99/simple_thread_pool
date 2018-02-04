@@ -66,10 +66,9 @@ public:
   // need to use std::ref to pass in reference
   template<typename F, typename...Args>
   void submit(F&& f, Args&&... args) {
-    std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
     {
       std::unique_lock<std::mutex> lock(status_and_queue_mutex);
-      queue.push(std::move(func));
+      queue.emplace(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
     }
     status_and_queue_cv.notify_one();
   }
@@ -78,18 +77,16 @@ public:
   // This is a more general form than "Submit" but may be slower???
   template<typename F, typename...Args>
   auto submitFuture(F&& f, Args&&... args) -> std::future<decltype(f(args...))> {
-    auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>>(
+    auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>> (
       std::bind(std::forward<F>(f), std::forward<Args>(args)...)
     );
 
-    std::function<void()> func = [task_ptr]() { (*task_ptr)(); };
-
     {
       std::unique_lock<std::mutex> lock(status_and_queue_mutex);
-      queue.push(std::move(func));
+      queue.emplace( [task_ptr]() { (*task_ptr)(); } );
     }
     status_and_queue_cv.notify_one();
 
-    return task_ptr->get_future(); // calling thread will not wait at future destroyer
+    return task_ptr->get_future(); // note: calling thread will not wait at future destruction
   }
 };

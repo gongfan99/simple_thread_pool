@@ -19,16 +19,16 @@ ThreadPool pool(3);
 pool.start();
 
 // Submit work
-// lambda function is used here as example. Any callable type can be used.
+// lambda function is used here as example. Any callable type can be used. But return value has to be void.
 pool.submit( [](float data) { process(data); }, 1.234 );
 
 // Submit work
-// it ignores the return value
+// the return value is ignored
 pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
 
-// Submit work that returns future
+// Submit work and get future associated with the result
 auto fut = pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
-float result = fut.get();
+assert( fut.get() == process(1.234) );
 
 // Shutdown the pool, releasing all threads
 pool.shutdown();
@@ -36,9 +36,40 @@ pool.shutdown();
 
 More usage cases can be found in test/test.cc
 
-Either submit() or submitFuture() can be used. submit() may be faster because of less wrapping but it only supports funtion that returns void. submitFuture() supports any form of function but may be slower.
+Either submit() or submitFuture() can be used. submit() may be slightly faster because of less wrapping but only funtion that returns void can be submitted. submitFuture() supports any form of function but may be slower.
 
-You can come up with an even faster version if the function to be submitted has a fixed known form for example int f(int), then std::bind is not needed in the submit() implementation which can make it faster. 
+# further speedup
+You can come up with an even faster version if the function to be submitted has a fixed known form for example "void func(int)", then the slow std::bind can be removed from the submit() implementation.
+
+First define a class
+```c
+class FunctionWrapper {
+  void (*)(int) pFunc;
+  int input;
+  FunctionWrapper(void (*)(int) pF, int inp) : pFunc(pF), input(inp) {}
+}
+```
+
+Then the queue in the class ThreadPool needs to be modified to:
+```c
+std::queue<FunctionWrapper> queue;
+```
+
+submit() can be modified to:
+```c
+void submit(void (*)(int) pF, int inp) {
+  {
+    std::unique_lock<std::mutex> lock(status_and_queue_mutex);
+    queue.emplace(pF, inp);
+  }
+  status_and_queue_cv.notify_one();
+}
+```
+
+Finally in the start() of the class ThreadPool, the function invocation needs to be modified from func() to:
+```c
+(func -> pFunc)(func -> input);
+```
 
 # Reference
-It is modified based on [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool)
+This implementation is adapted from [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool) which has a very good description.
