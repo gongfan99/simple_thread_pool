@@ -1,16 +1,16 @@
-# simple_thread_pool
-A bare metal thread pool with C++11. It should work on both Linux and Windows.
+# Simple_thread_pool
+A bare metal thread pool with C++11. It works on both Linux and Windows.
 
-# build example
+# Build example
 ```c
-// Windows, VS 2015 installed
+// on Windows with VS 2015 installed
 git clone https://github.com/gongfan99/simple_thread_pool.git
 cd test
 build
 test
 ```
 
-# usage
+# Usage
 ```c
 // Create pool with 3 threads
 ThreadPool pool(3);
@@ -30,7 +30,7 @@ pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
 auto fut = pool.submitFuture( [](float data) -> float { return process(data); }, 1.234 );
 assert( fut.get() == process(1.234) );
 
-// Shutdown the pool, releasing all threads
+// Shutdown the pool, release all threads
 pool.shutdown();
 ```
 
@@ -38,10 +38,10 @@ More usage cases can be found in test/test.cc
 
 Either submit() or submitFuture() can be used. submit() may be slightly faster because of less wrapping but only funtion that returns void can be submitted. submitFuture() supports any form of function but may be slower.
 
-# further speedup
-You can come up with an even faster version if the function to be submitted has a fixed known form for example "void func(int)", then the slow std::bind can be removed from the submit() implementation.
+# Further speedup
+If the function to be submitted has a fixed known signature for example "void func(int)", then the slow std::bind can be removed from the submit() implementation.
 
-First define a class
+1. First define a class
 ```c
 class FunctionWrapper {
   void (*)(int) pFunc;
@@ -50,12 +50,12 @@ class FunctionWrapper {
 }
 ```
 
-Then the queue in the class ThreadPool needs to be modified to:
+2. Modify the queue in the class ThreadPool to:
 ```c
 std::queue<FunctionWrapper> queue;
 ```
 
-submit() can be modified to:
+3. Modify submit() to:
 ```c
 void submit(void (*)(int) pF, int inp) {
   {
@@ -66,10 +66,10 @@ void submit(void (*)(int) pF, int inp) {
 }
 ```
 
-Finally in the start() of the class ThreadPool, the function invocation needs to be modified from func() to:
+4. Finally in the start() of the class ThreadPool, modify the function invocation from func() to:
 ```c
 (func -> pFunc)(func -> input);
 ```
 
 # Reference
-This implementation is adapted from [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool) which has a very good description.
+This implementation is adapted from [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool) which has a very good description of the code.
