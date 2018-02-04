@@ -47,6 +47,7 @@ class FunctionWrapper {
   void (*)(int) pFunc;
   int input;
   FunctionWrapper(void (*)(int) pF, int inp) : pFunc(pF), input(inp) {}
+  void operator()() { pFunc(input); }
 }
 ```
 
@@ -66,10 +67,8 @@ void submit(void (*)(int) pF, int inp) {
 }
 ```
 
-4. Finally in the start() of the class ThreadPool, modify the function invocation from func() to:
-```c
-(func -> pFunc)(func -> input);
-```
-
 # Reference
 This implementation is adapted from [Mtrebi's thread pool](https://github.com/mtrebi/thread-pool) which has a very good description of the code.
+
+# License
+MIT
