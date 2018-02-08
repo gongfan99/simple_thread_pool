@@ -2,7 +2,7 @@
 A bare metal thread pool with C++11. It works on both Linux and Windows.
 
 # Build example
-```c
+```CPP
 // on Windows with VS 2015 installed
 git clone https://github.com/gongfan99/simple_thread_pool.git
 cd test
@@ -11,7 +11,7 @@ test
 ```
 
 # Usage
-```c
+```CPP
 // Create pool with 3 threads
 ThreadPool pool(3);
 
@@ -36,29 +36,34 @@ pool.shutdown();
 
 More usage cases can be found in test/test.cc
 
-Either submit() or submitFuture() can be used. submit() may be slightly faster because of less wrapping but only funtion that returns void can be submitted. submitFuture() supports any form of function but may be slower.
+Either `submit()` or `submitFuture()` can be used. `submit()` may be slightly faster but only funtion that returns void can be submitted. `submitFuture()` supports any form of function but may be slower due to the `future` involved.
+
+`submit()` is very good for writing Node native module.
 
 # Further speedup
-If the function to be submitted has a fixed known signature for example "void func(int)", then the slow std::bind can be removed from the submit() implementation.
+If the function to be submitted has a fixed known signature for example `void func(int)`, then the slow `std::bind` can be removed from the `submit()` implementation. `std::bind` is slow because of two reasons: (a) indirect function invoking (b) possible heap allocation if the function argument size is larger than one pointer size.
+
+However, you should not do this unless you are absolutely sure this speedup is needed. It is not in most cases.
 
 1. First define a class
-```c
+```CPP
 class FunctionWrapper {
-  void (*)(int) pFunc;
+  typedef void (*FuncMemberType)(int);
+  FuncMemberType pFunc;
   int input;
-  FunctionWrapper(void (*)(int) pF, int inp) : pFunc(pF), input(inp) {}
+  FunctionWrapper(FuncMemberType pF, int inp) : pFunc(pF), input(inp) {}
   void operator()() { pFunc(input); }
 }
 ```
 
-2. Modify the queue in the class ThreadPool to:
-```c
+2. Modify the `queue` in the `class ThreadPool` to:
+```CPP
 std::queue<FunctionWrapper> queue;
 ```
 
-3. Modify submit() to:
-```c
-void submit(void (*)(int) pF, int inp) {
+3. Modify `submit()` to:
+```CPP
+void submit(FuncMemberType pF, int inp) {
   {
     std::unique_lock<std::mutex> lock(status_and_queue_mutex);
     queue.emplace(pF, inp);
